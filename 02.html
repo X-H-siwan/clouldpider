@@ -1,0 +1,58 @@
+<html lang="en">
+
+<title> Convert Excel File To JSON </title>
+
+<head>
+    <script src="./js/jquery.min.js">
+    </script>
+    <script src="http://oss.sheetjs.com/js-xlsx/xlsx.full.min.js"></script>
+    </script>
+    <script>
+        layui.use(['form'], function() {
+            var form = layui.form();
+            //全选
+            form.on('checkbox(allChoose)', function(data) {
+                $("input[name='check[]']").each(function() {
+                    this.checked = data.elem.checked;
+                });
+                form.render('checkbox');
+            });
+            //单选
+            form.on('checkbox(oneChoose)', function(data) {
+                var i = 0;
+                var j = 0;
+                $("input[name='check[]']").each(function() {
+                    if (this.checked === true) {
+                        i++;
+                    }
+                    j++;
+                });
+                if (i == j) {
+                    $(".checkboxAll").prop("checked", true);
+                    form.render('checkbox');
+                } else {
+                    $(".checkboxAll").removeAttr("checked");
+                    form.render('checkbox');
+                }
+
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <input type="file" id="fileUploader" name="fileUploader" accept=".xls, .xlsx" />
+
+    <option value='6'>分组四</option>
+    <option value='6'>分组四</option>
+    <option value='8'>分组6-1</option>
+    <option value='5'>分组二</option>
+    <option value='6'>分组四</option>
+    <option value='6'>分组四</option>
+    <option value='8'>分组6-1</option>
+    <option value='5'>分组二</option>
+    <option value='7'>分组5-1</option>
+    </br>
+    </br>
+    JSON : <label id="jsonObject"> </label>
+</body>

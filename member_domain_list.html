@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html class="x-admin-sm">
+
+<head>
+    <meta charset="UTF-8">
+    <title>欢迎页面-X-admin2.2</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="stylesheet" href="./css/font.css">
+    <link rel="stylesheet" href="./css/xadmin.css">
+    <script src="./lib/layui/layui.js" charset="utf-8"></script>
+    <script type="text/javascript" src="./js/xadmin.js"></script>
+    <script type="text/javascript" src="./js/vue.js"></script>
+    <script src="./js/jquery.min.js"></script>
+    <script type="text/javascript" src="./js/data.js"></script>
+    <script src="http://oss.sheetjs.com/js-xlsx/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="http://cdn.bootcss.com/bootstrap/3.3.0/css/bootstrap.min.css">
+    <style>
+        .fileinput-button {
+            position: relative;
+            display: inline-block;
+            overflow: hidden;
+        }
+        
+        .fileinput-button input {
+            position: absolute;
+            right: 0px;
+            top: 0px;
+            opacity: 0;
+            -ms-filter: 'alpha(opacity=0)';
+            font-size: 200px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="x-nav">
+        <span class="layui-breadcrumb">
+            <a href="">首页</a>
+            <a href="">演示</a>
+            <a>
+              <cite>导航元素</cite></a>
+          </span>
+        <a class="layui-btn layui-btn-small" style="line-height:1.6em;margin-top:3px;float:right" onclick="location.reload()" title="刷新">
+            <i class="layui-icon layui-icon-refresh" style="line-height:30px"></i></a>
+    </div>
+    <div class="layui-fluid" id="catList">
+        <div class="layui-row layui-col-space15">
+            <div class="layui-col-md12">
+                <div class="layui-card">
+                    <div class="layui-card-body ">
+                        <form class="layui-form layui-col-space5" onsubmit="return false">
+                            <div class="layui-inline layui-show-xs-block">
+                                <input type="text" name="username" placeholder="搜索" autocomplete="off" class="layui-input" v-model='keywords'>
+                            </div>
+                            <div class="layui-inline layui-show-xs-block">
+                                <button class="layui-btn" @click=search><i class="layui-icon">&#xe615;</i></button>
+                            </div>
+                            <div class="layui-inline layui-show-xs-block">
+                                <span class="btn btn-success fileinput-button">
+                                    <span>批量添加</span>
+                                <input type="file" id="LAY-excel-import-excel" multiple="multiple" accept=".xls">
+                                </span>
+                                <label for="file" id="for_file"></label>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="layui-card-header">
+                        <button class="layui-btn" onclick="xadmin.open('添加域名','./member_domain_list_addDomain.html',600,700,true)"><i class="layui-icon"></i>添加</button>
+                    </div>
+                    <div class="layui-card-body layui-table-body">
+                        <table class="layui-table layui-form">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>域名</th>
+                                    <th>网站名称</th>
+                                    <th>网站标题</th>
+                                    <th>关键字</th>
+                                    <th>简介</th>
+                                    <th>发布时间</th>
+                                    <th>更新时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <!-- 分页显示数据 -->
+                            <tbody v-for="(item,index) in list" :key="index">
+                                <tr>
+                                    <td>{{item.id}}</td>
+                                    <td @click="opensite(item.domain)" style="cursor:pointer">{{item.domain}}</td>
+                                    <td>{{item.domain_name}}</td>
+                                    <td>{{item.title }}</td>
+                                    <td>{{item.keywords}}</td>
+                                    <td>{{item.description}}</td>
+                                    <td>{{item.created_at |formatDate}}</td>
+                                    <td>{{item.updated_at |formatDate}}</td>
+                                    <td class="td-manage">
+                                        <a title="修改" @click.stop='modify(item)' href="javascript:;">
+                                            <i class="layui-icon">&#xe631;</i>
+                                        </a>
+                                        <a title="删除" @click.stop="delServer(item.domain,item.id)" href="javascript:;">
+                                            <i class="layui-icon">&#xe640;</i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <!-- 分页显示数据 -->
+                        </table>
+                    </div>
+                    <div class="layui-card-body">
+                        <div>
+                            <div id="pages" class="layui-box layui-laypage layui-laypage-default">
+                                <a href="javascript:;" class="layui-laypage-prev" @click='prePage($event)'>上一页</a>
+                                <span class="layui-laypage-curr"><em class="layui-laypage-em"></em><em>第{{page}}页</em></span>
+                                <span>共{{pages}}页</span>
+                                <a href="javascript:;" class="layui-laypage-next" @click='nextPage($event)'>下一页</a>
+                                <span class="layui-laypage-skip">到第
+                                    <input type="text" min="1" value="1" class="layui-input" id="inputpage">页
+                                    <button type="button" @click="topage()" class="layui-laypage-btn">确定</button>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+
+<script type="text/javascript">
+    layui.use(['layer'],
+        function() {
+            //单个进行向后端添加域名
+            window.postajax = function(data) {
+                $.ajax({
+                    url: domin + 'domain/',
+                    type: 'post',
+                    dataType: 'json',
+                    contentType: 'application/json;charset=utf-8',
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('Token', Token)
+                    },
+                    crossDomain: true,
+                    data: JSON.stringify(data),
+                    success: function(res) {
+                        if (res.status == 200) {
+                            layer.alert('增加成功', {
+                                icon: 6
+                            });
+                            setTimeout(function() {
+                                //关闭当前frame
+                                xadmin.close();
+                                // 可以对父窗口进行刷新 
+                                xadmin.father_reload();
+                            }, 1000)
+                        } else if (res.status == 204) {
+                            layer.alert('添加失败,部分域名已存在', {
+                                icon: 5
+                            });
+                        }
+                    },
+                })
+            }
+        });
+
+    $(function() {
+        // 监听上传文件的事件
+        $('#LAY-excel-import-excel').change(function(evt) {
+            $('#for_file').html(evt.target.files[0].name)
+            var selectedFile = evt.target.files[0];
+            var reader = new FileReader();
+            reader.onload = function(event) {
+                var data = event.target.result;
+                var workbook = XLSX.read(data, {
+                    type: 'binary'
+                });
+                workbook.SheetNames.forEach(function(sheetName) {
+                    var XL_row_object = XLSX.utils.sheet_to_row_object_array(workbook.Sheets[sheetName]);
+                    if (XL_row_object.length > 0) {
+                        handle_data(XL_row_object); //对数据进行处理                     
+                    }
+
+                })
+            };
+            reader.onerror = function(event) {
+                console.error("File could not be read! Code " + event.target.error.code);
+            };
+            // 读取上传文件为二进制
+            reader.readAsBinaryString(selectedFile);
+        });
+    });
+    // 获取数据类型
+    htmlAjax('get', domin + 'system/', gettype);
+    //获取type
+    let type = []
+    htmlAjax('get', domin + 'system/', getalltype);
+
+    function getalltype(data) {
+        type = gettype(data);
+    }
+    //获取模板id
+    htmlAjax('get', domin + 'template/', gettemp);
+    //保存模板的id信息
+    let tempinfo = []
+        //处理获取模板的信息
+    function gettemp(data) {
+        tempinfo = data.result.list
+    };
+
+    //处理数据
+    function handle_data(data) {
+        let domain = /^.{1,10}(.com|.cn|.net)$/;
+        let ip = /([01]?[0-9][0-9]?|2[0-4][0-9]|25[0-5])(\.([01]?[0-9][0-9]?|2[0-4][0-9]|25[0-5])){3}/;
+        let newdata = [];
+        for (let i = 0; i < data.length; i++) {
+            if (domain.test(data[i].domain) == false) {
+                alert('第' + (i + 2) + '行域名格式错误');
+                return
+            };
+            if (ip.test(data[i].ip) == false) {
+                alert('第' + (i + 2) + '行ip格式错误');
+                return
+            };
+
+            data[i].data_type = search(data[i].data_type, type) == undefined ? errorocur('第' + (i + 2) + '行网站类型错误') : search(data[i].data_type, type)
+            data[i].run_mode = data[i].run_mode == '单站' ? 0 : data[i].run_mode == '泛站' ? 1 : errorocur('第' + (i + 2) + '行运行模式错误');
+            data[i].status = data[i].status == '未审核' ? 0 : data[i].status == '已审核' ? 1 : errorocur('第' + (i + 2) + '行状态错误');
+            data[i].templated_id = search(data[i].templated_id, tempinfo) == undefined ? (errorocur('第' + (i + 2) + '行模板不存在')) : search(data[i].templated_id, tempinfo)
+
+            newdata.push(data[i])
+        }
+        postarr(newdata);
+    }
+    //设定给一个变量确保执行添加的时候没有错误
+    let hasfalse = false;
+    //例行添加，当hasfalse为true时，函数不执行
+    function postarr(data) {
+        if (hasfalse) {
+            return false
+        } else {
+            for (let i = 0; i < data.length; i++) {
+                postajax(data[i])
+            }
+        }
+    };
+    //当发生错误时，弹出错误，hasfalse为true,此时input为file时change事件只会执行一次，再次上传前需要清空其value
+    function errorocur(err) {
+        hasfalse = true;
+        $('#LAY-excel-import-excel').val(null)
+        alert(err)
+    }
+</script>
+<script type="text/javascript">
+    // 过滤时间函数
+    function padDate(va) {
+        return va = va < 10 ? '0' + va : va;
+    }
+    Vue.filter('formatDate', function(date) {
+        let value = new Date(date * 1000);
+        let year = value.getFullYear();
+        let month = value.getMonth() + 1;
+        let day = value.getDate();
+        let hour = value.getHours();
+        let minutes = value.getMinutes();
+        let second = value.getSeconds();
+        return year + '-' + padDate(month) + '-' + padDate(day) + ' ' + padDate(hour) + ':' + padDate(minutes) + ':' + padDate(second);
+    })
+    window.onload = function() {
+        // 实例化服务器列表组件
+        let catList = new Vue({
+            el: '#catList',
+            data: {
+                list: [],
+                keywords: '', //搜索关键词
+                page: 1, //当前页码
+                limit: 10, //每页显示的数量
+                flag: false, //最后一页请求是否已经小于limit
+                total: 0,
+                pages: 0, //知道总数求分页    
+                selectedItem: [], //选中的元素
+                checkAll: false,
+            },
+            mounted() {
+                this.loadData(1);
+            },
+            methods: {
+                loadData(page, key) {
+                    let urlin = '';
+                    if (key) {
+                        urlin = domin + 'domain/?page=' + page + '&size=' + this.limit + '&keywords=' + key;
+                    } else {
+                        urlin = domin + 'domain/?page=' + page + '&size=' + this.limit;
+                    }
+                    htmlAjax('get', urlin, this.package)
+                },
+                package(data) {
+                    if (data.status == 200) {
+                        //后端返回总条数
+                        this.total = data.result.total;
+                        this.list = data.result.list;
+                        this.pages = Math.ceil(this.total / this.limit);
+                    } else {
+                        layer.alert('请求失败', {
+                            icon: 2,
+                            time: 2000
+                        });
+                    }
+                },
+                //到特定页面
+                topage() {
+                    let value = document.getElementById('inputpage').value;
+                    if (value > this.pages) {
+                        layer.alert('页码大于总页数', {
+                            icon: 2,
+                            time: 2000
+                        });
+                    } else if (value <= 0) {
+                        layer.alert('页码输入不正确', {
+                            icon: 2,
+                            time: 2000
+                        });
+                    } else if (value == this.page) {
+                        layer.alert('已经在当前页面了', {
+                            icon: 2,
+                            time: 2000
+                        });
+                    } else {
+                        this.page = value
+                        this.loadData(value);
+                    }
+                },
+                //下一页功能
+                nextPage(event) {
+                    let e = event.currentTarget;
+                    if (this.page < this.pages) {
+                        this.page++;
+                        this.loadData(this.page)
+                    } else {
+                        return false
+                    }
+                },
+                // 上一页功能
+                prePage(event) {
+                    let e = event.currentTarget;
+                    if (this.page > 1) {
+                        this.page--;
+                        this.loadData(this.page)
+                    } else {
+                        return false
+                    }
+                },
+                //删除功能
+                delServer(name, id) {
+                    let self = this;
+                    layer.confirm('确认删除' + name + '这条数据吗？', {
+                        btn: ['确认', '取消'],
+                        title: '提示'
+                    }, function() {
+                        htmlAjax('delete', domin + 'domain/' + id, self.deleteMsg)
+                    })
+                },
+                deleteMsg(data) {
+                    if (data.status == 200) {
+                        layer.alert('删除成功', {
+                            icon: 6,
+                        });
+                        setTimeout(function() {
+                            //关闭当前frame
+                            xadmin.close();
+                            // 可以对父窗口进行刷新 
+                            xadmin.father_reload();
+                        }, 2000)
+                    } else {
+                        layer.alert('删除失败', {
+                            icon: 2,
+                            time: 2000
+                        });
+                    }
+                },
+                //点击打开网站
+                opensite(site) {
+                    window.open(site + ':9000')
+                },
+                //打开客户列表框并传值
+                modify(catname, ip) {
+                    openIframe('栏目修改', 'member_domain_list_modify.html', catname, ip, true)
+                },
+                search() {
+                    this.loadData(1, this.keywords)
+                },
+
+
+            },
+            filters: {
+                ellipsis(value) {
+                    if (!value) return ''
+                    if (value.length > 20) {
+                        return value.slice(0, 20) + '...'
+                    }
+                    return value
+                }
+            }
+
+
+        })
+    }
+</script>
+
+
+
+</html>
